@@ -460,7 +460,7 @@ def diagnose(cfg):
 def snapshot(cfg):
     REPORTS.mkdir(exist_ok=True, mode=0o700)
     output = {'generated_at_utc': datetime.now(timezone.utc).isoformat(),
-              'real_tv_test': True, 'sections': {}}
+              'evidence': 'API reads only; screen and playback not verified', 'sections': {}}
     for name in READ_PATHS:
         try:
             output['sections'][name] = redact(read_state(cfg, name))
@@ -475,6 +475,64 @@ def snapshot(cfg):
     print('Private redacted report:', destination.name, '(not a firmware backup; inspect locally before sharing)')
 
 
+def connectivity_report(cfg=None):
+    """Read-only checks. No scanning, DNS changes, Wi-Fi setup, or app launch."""
+    report = {'network_settings_changed': False, 'tv_api': 'not_configured',
+              'route_to_tv': 'not_checked', 'local_services': {},
+              'rendering': 'requires_visual_test', 'remote_events': 'requires_TV_test'}
+    if cfg:
+        try:
+            local_ip_for(cfg['host'])
+            report['route_to_tv'] = 'local_route_found_not_proof_of_reachability'
+        except OSError:
+            report['route_to_tv'] = 'unavailable'
+        try:
+            report['device'] = safe_identity(device_info(read_state(cfg, 'device')))
+            report['tv_api'] = 'authenticated_read_succeeded'
+        except (RuntimeError, ValueError, TypeError, OSError):
+            report['tv_api'] = 'read_failed'
+    for name, port, path in (('static_site', SITE_PORT, '/tv/catalog.json'),
+                             ('dashboard', CONTROL_PORT, '/api/diagnostics')):
+        connection = http.client.HTTPConnection('127.0.0.1', port, timeout=3)
+        try:
+            connection.request('GET', path)
+            response = connection.getresponse()
+            data = json.loads(response.read(MAX_RESPONSE + 1))
+            if response.status != 200 or not isinstance(data, dict):
+                raise ValueError()
+            if name == 'static_site':
+                apps = data.get('apps')
+                if not isinstance(apps, list):
+                    raise ValueError()
+                report['local_services'][name] = {'status': 'reachable', 'catalog_entries': len(apps)}
+            else:
+                if data.get('ok') is not True or not isinstance(data.get('data'), dict):
+                    raise ValueError()
+                report['local_services'][name] = {'status': 'reachable', 'observation': data['data']}
+        except (OSError, ValueError, http.client.HTTPException):
+            report['local_services'][name] = {'status': 'unavailable_or_unexpected_response'}
+        finally:
+            connection.close()
+    return redact_for_config(cfg, report)
+
+
+def observed_conjure(cfg, url, server):
+    """Record an API attempt separately from HTTP fetching or visible rendering."""
+    with server.observation_lock:
+        server.observation.update({'conjure_attempted_at_utc': datetime.now(timezone.utc).isoformat(),
+            'conjure_api_status': 'pending', 'tv_page_requested_at_utc': None,
+            'tv_assets_requested': []})
+    try:
+        result = launch_conjure(cfg, url)
+    except (RuntimeError, ValueError, OSError):
+        with server.observation_lock:
+            server.observation['conjure_api_status'] = 'failed'
+        raise
+    with server.observation_lock:
+        server.observation['conjure_api_status'] = 'accepted'
+    return result
+
+
 STATIC = {'/tv/': ('index.html', 'text/html'), '/tv/index.html': ('index.html', 'text/html'),
           '/tv/styles.css': ('styles.css', 'text/css'), '/tv/app.js': ('app.js', 'text/javascript'),
           '/tv/catalog.json': ('catalog.json', 'application/json'),
@@ -484,6 +542,10 @@ STATIC = {'/tv/': ('index.html', 'text/html'), '/tv/index.html': ('index.html', 
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+
+    def __init__(self, *args, **kwargs):
+        self.observation_lock = threading.Lock()
+        super().__init__(*args, **kwargs)
 
 
 class BaseHandler(BaseHTTPRequestHandler):
@@ -529,8 +591,14 @@ class SiteHandler(BaseHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         observation = getattr(self.server, 'observation', None)
-        if observation is not None and self.client_address[0] == self.server.tv_host and path in ('/', '/tv/', '/tv/index.html'):
-            observation['tv_page_requested_at_utc'] = datetime.now(timezone.utc).isoformat()
+        if observation is not None and self.client_address[0] == self.server.tv_host:
+            with self.server.observation_lock:
+                if path in ('/', '/tv/', '/tv/index.html'):
+                    observation['tv_page_requested_at_utc'] = datetime.now(timezone.utc).isoformat()
+                if path in STATIC:
+                    assets = set(observation.get('tv_assets_requested', []))
+                    assets.add(path)
+                    observation['tv_assets_requested'] = sorted(assets)
         self.static('/tv/' if path == '/' else path)
 
     def do_POST(self):
@@ -585,8 +653,12 @@ class ControlHandler(BaseHandler):
             if path == '/api/session':
                 return self.reply(200, {'ok': True, 'csrf': self.csrf, 'offline': self.cfg is None})
             if path == '/api/diagnostics':
-                return self.reply(200, {'ok': True, 'data': {**self.server.observation,
-                    'note': 'A page request from the configured IP proves an HTTP request only, not visible rendering or working remote events.'}})
+                with self.server.observation_lock:
+                    observed = dict(self.server.observation)
+                return self.reply(200, {'ok': True, 'data': {**observed,
+                    'rendering_verified': False, 'remote_verified': False,
+                    'network_settings_changed': False,
+                    'note': 'API acceptance, HTTP requests, visual rendering, and remote events are separate checks. The server cannot verify the TV screen.'}})
             self.require_cfg()
             with TV_LOCK:
                 if path == '/api/status':
@@ -635,7 +707,7 @@ class ControlHandler(BaseHandler):
                 elif self.path == '/api/setting':
                     result = set_setting(self.cfg, data.get('group'), data.get('name'), data.get('value'))
                 else:
-                    result = launch_conjure(self.cfg, 'http://%s:%d/tv/' % (local_ip_for(self.cfg['host']), SITE_PORT))
+                    result = observed_conjure(self.cfg, 'http://%s:%d/tv/' % (local_ip_for(self.cfg['host']), SITE_PORT), self.server)
             self.reply(200, {'ok': True, 'result': result['STATUS']['RESULT'],
                              'note': 'API accepted only; verify the TV screen/state.'})
         except (ValueError, TypeError, KeyError, RuntimeError, OSError):
@@ -650,8 +722,10 @@ def make_servers(cfg):
     except OSError:
         control.server_close()
         raise
-    observation = {'tv_page_requested_at_utc': None}
+    observation = {'tv_page_requested_at_utc': None, 'tv_assets_requested': [],
+                   'conjure_attempted_at_utc': None, 'conjure_api_status': 'not_attempted'}
     control.observation = site.observation = observation
+    site.observation_lock = control.observation_lock
     site.tv_host = cfg['host'] if cfg else None
     return control, site
 
@@ -671,7 +745,7 @@ def serve(cfg=None, launch=False):
             print('TV URL:', url)
             if launch:
                 try:
-                    launch_conjure(cfg, url)
+                    observed_conjure(cfg, url, control)
                     print('Conjure API accepted. Screen rendering and remote events still require observation.')
                 except RuntimeError as exc:
                     print(str(exc), '— control remains available. Use AirPlay fallback if unsupported.')
@@ -696,7 +770,7 @@ def main():
     trust = p.add_mutually_exclusive_group()
     trust.add_argument('--trust-on-first-use', action='store_true')
     trust.add_argument('--certificate-sha256')
-    for name in ('diagnose', 'snapshot', 'preview', 'launch', 'catalog', 'support'):
+    for name in ('diagnose', 'snapshot', 'preview', 'launch', 'catalog', 'support', 'check'):
         sub.add_parser(name)
     p = sub.add_parser('watchfree', help='Launch the legacy WatchFree app and inspect current app; verify TV screen')
     p.add_argument('--check', action='store_true', help='Read current app only; do not launch')
@@ -712,6 +786,10 @@ def main():
             return setup(args.ip, args.trust_on_first_use, args.certificate_sha256)
         if args.command == 'catalog':
             return print((SITE / 'catalog.json').read_text(encoding='utf-8'))
+        if args.command == 'check':
+            cfg = read_config() if CONFIG.exists() else None
+            print(json.dumps(connectivity_report(cfg), ensure_ascii=False, indent=2))
+            return
         if args.command == 'preview':
             return serve(read_config() if CONFIG.exists() else None)
         cfg = read_config()

@@ -9,8 +9,8 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 ARCHIVE_URL = 'https://github.com/msamyjr/samy-fluent-console-analyzer/raw/refs/heads/download/samy-vizio-modern-home/downloads/Samy_Vizio_Modern_Home.zip'
-EXPECTED_SHA256 = 'df01e601e31bf8e8ada60823d07fda68fc69704c93d828671483e3a82a6cbefb'
-ROOT_FILES = {'README.md', 'COMPATIBILITY.md', 'REAL_DEVICE_TESTS.md', 'TEST_RESULTS.md', 'main.py', '.gitignore', 'CODEX_PROMPT.md', 'README_AR.md', 'COMPATIBILITY_AR.md', 'REAL_DEVICE_TESTS_AR.md', 'TEST_RESULTS_AR.md'}
+EXPECTED_SHA256 = 'c0eee8be661e48ed2995a31e66f028c68aecf4c9a7b328f75fb60fe6bb5a3b95'
+ROOT_FILES = {'DEVICE_COMPATIBILITY.md', 'launcher.py', 'README.md', 'COMPATIBILITY.md', 'REAL_DEVICE_TESTS.md', 'TEST_RESULTS.md', 'main.py', '.gitignore', 'CODEX_PROMPT.md', 'README_AR.md', 'COMPATIBILITY_AR.md', 'REAL_DEVICE_TESTS_AR.md', 'TEST_RESULTS_AR.md'}
 
 
 def apply_update(archive, root):
@@ -85,8 +85,8 @@ def main():
         backup = apply_update(archive, root)
     print('Update installed. Your .vizio_local.json was not read or changed.')
     print('Previous application files:', backup)
-    print('Next: python3 main.py preview  (Mac dashboard)')
-    print('Or:   python3 main.py launch   (also requests Conjure on TV)')
+    print('Next: python3 launcher.py preview  (Mac dashboard)')
+    print('Or:   python3 launcher.py launch   (also requests Conjure on TV)')
     print('WatchFree test: python3 main.py watchfree')
 
 

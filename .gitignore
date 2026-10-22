@@ -1,0 +1,11 @@
+.vizio_local.json
+.samy-*
+reports/
+__pycache__/
+*.pyc
+.DS_Store
+
+backups/
+main.backup.*.py
+main.updated.py
+.samy_update.py

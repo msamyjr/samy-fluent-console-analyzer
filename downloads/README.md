@@ -1,28 +1,27 @@
-# Samy TV — English edition, recovery/protocol correction
+# Samy Home — Google TV-inspired launcher
 
-[Complete ZIP](./Samy_Vizio_Modern_Home.zip?raw=true) · [Preview](./preview.png)
+[Download ZIP](./Samy_Vizio_Modern_Home.zip?raw=true) · [Preview](./preview.png) · [Real-device compatibility](./DEVICE_COMPATIBILITY.md)
 
-63 offline app tests, 4 updater tests, and both browser suites passed. The owner's black screen is not proven fixed by cloud simulations.
+English TV home screen, protected Mac dashboard, searchable app rows, favorites, remote-event check, and separate Conjure API / TV asset-request observations. Native Wi-Fi and DNS remain unchanged. No firmware flashing or native APK support.
 
-The current version reads singular ITEM.VALUE current-app responses; separates Home (4,15), SmartCast (4,3), Menu (4,8); lists inputs with missing enable flags read-only; and explains missing setting metadata.
+This checkout originally contained main.py but no launcher.py. The new launcher.py delegates to the existing backend. A different launcher.py on the owner's Mac was not available for inspection.
 
-## Update and diagnose without relaunching WatchFree
+## Update an existing project
 
-From the existing project folder, after stopping any running server:
+Stop its server with Control+C. From the project folder:
 
 ```bash
 curl -fL "https://github.com/msamyjr/samy-fluent-console-analyzer/raw/refs/heads/download/samy-vizio-modern-home/downloads/update.py" -o .samy_update.py &&
 python3 .samy_update.py &&
-python3 main.py key home &&
-python3 main.py support
+python3 launcher.py preview
 ```
 
-The updater preserves pairing and backs up app files. The support command only reads metadata; it does not launch an app or change settings. Do not repeatedly relaunch WatchFree while the screen is black. Physical Input and normal remote power off/on can be tried; never factory reset or flash firmware.
+The updater verifies SHA-256, backs up replaced application files, and preserves private pairing. From a second terminal in the project directory, run `python3 launcher.py check`. To request Conjure explicitly, stop preview and run `python3 launcher.py launch`, or use the dashboard.
 
-English interface and guides included. WatchFree+ availability in Malaysia, Spotify/website playback, and real TV recovery remain unverified. No DNS/network changes, DRM bypass, firmware replacement, or Google Play installation.
+73 offline app tests, 4 updater tests, and both browser suites passed. Cloud tests do not establish real-TV compatibility. Owner-confirmed pairing/settings reads and the WatchFree black screen are documented separately. Native commands remain on the loopback dashboard; LAN assets are read-only. The server must stay running.
 
-SHA-256: `df01e601e31bf8e8ada60823d07fda68fc69704c93d828671483e3a82a6cbefb`
+For exact device steps and limitations, read README.md and DEVICE_COMPATIBILITY.md inside the ZIP.
 
-## Firmware research
+Archive SHA-256: `c0eee8be661e48ed2995a31e66f028c68aecf4c9a7b328f75fb60fe6bb5a3b95`
 
-[Cross-model firmware investigation](./FIRMWARE_RESEARCH.md) — no compatible firmware candidate verified; official-source access blocked in the cloud.
+[Earlier cross-model firmware investigation](./FIRMWARE_RESEARCH.md): no compatible firmware image was verified.

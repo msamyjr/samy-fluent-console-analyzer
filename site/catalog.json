@@ -1,0 +1,148 @@
+{
+  "version": 4,
+  "device_verified": false,
+  "apps": [
+    {
+      "id": "watchfree",
+      "name": "WatchFree+",
+      "symbol": "WatchFree+",
+      "color": "#5441a5",
+      "type": "native",
+      "status": "community-experimental",
+      "description": "Legacy WatchFree ID · Malaysia availability unverified",
+      "source": "https://github.com/exiva/Vizio_SmartCast_API#app-ids"
+    },
+    {
+      "id": "netflix",
+      "name": "Netflix",
+      "symbol": "N",
+      "color": "#b41229",
+      "type": "native",
+      "status": "community-experimental",
+      "description": "Community app ID · Not verified on your TV",
+      "source": "https://github.com/exiva/Vizio_SmartCast_API#app-ids"
+    },
+    {
+      "id": "prime",
+      "name": "Prime Video",
+      "symbol": "prime",
+      "color": "#1469a4",
+      "type": "native",
+      "status": "community-experimental",
+      "description": "Community app ID · Not verified on your TV",
+      "source": "https://github.com/exiva/Vizio_SmartCast_API#app-ids"
+    },
+    {
+      "id": "hulu",
+      "name": "Hulu",
+      "symbol": "hulu",
+      "color": "#086a4b",
+      "type": "native",
+      "status": "community-experimental",
+      "description": "Community app ID · Not verified on your TV",
+      "source": "https://github.com/exiva/Vizio_SmartCast_API#app-ids"
+    },
+    {
+      "id": "plex",
+      "name": "Plex",
+      "symbol": "plex",
+      "color": "#785a12",
+      "type": "native",
+      "status": "community-experimental",
+      "description": "Community app ID · Not verified on your TV",
+      "source": "https://github.com/exiva/Vizio_SmartCast_API#app-ids"
+    },
+    {
+      "id": "filmrise",
+      "name": "FilmRise",
+      "symbol": "FILM",
+      "color": "#b6512e",
+      "type": "native",
+      "status": "community-experimental",
+      "description": "Community app ID · Not verified on your TV",
+      "source": "https://github.com/exiva/Vizio_SmartCast_API#app-ids"
+    },
+    {
+      "id": "dazn",
+      "name": "DAZN",
+      "symbol": "DAZN",
+      "color": "#465537",
+      "type": "native",
+      "status": "community-experimental",
+      "description": "Community app ID · Not verified on your TV",
+      "source": "https://github.com/exiva/Vizio_SmartCast_API#app-ids"
+    },
+    {
+      "id": "youtube-web",
+      "name": "YouTube Web",
+      "symbol": "YouTube",
+      "color": "#8b2139",
+      "type": "web",
+      "status": "unverified-web",
+      "description": "Website · TV video compatibility unverified",
+      "url": "https://www.youtube.com/tv"
+    },
+    {
+      "id": "plex-web",
+      "name": "Plex Web",
+      "symbol": "plex",
+      "color": "#76591d",
+      "type": "web",
+      "status": "unverified-web",
+      "description": "Website · Sign-in may be required",
+      "url": "https://app.plex.tv/"
+    },
+    {
+      "id": "archive",
+      "name": "Internet Archive",
+      "symbol": "IA",
+      "color": "#354d72",
+      "type": "web",
+      "status": "unverified-web",
+      "description": "Web collection · Check individual content rights",
+      "url": "https://archive.org/details/movies"
+    },
+    {
+      "id": "wikipedia",
+      "name": "Wikipedia",
+      "symbol": "W",
+      "color": "#42516b",
+      "type": "web",
+      "status": "unverified-web",
+      "description": "Read and explore on the web",
+      "url": "https://www.wikipedia.org/"
+    },
+    {
+      "id": "rtmklik",
+      "name": "RTM Klik",
+      "symbol": "rtm klik",
+      "type": "web",
+      "status": "official-link-unverified-playback",
+      "description": "Malaysian public TV · Test playback on your device",
+      "url": "https://rtmklik.rtm.gov.my/",
+      "source": "https://www.rtm.gov.my/"
+    },
+    {
+      "id": "awani",
+      "name": "Astro AWANI",
+      "symbol": "AWANI",
+      "type": "web",
+      "status": "official-link-unverified-playback",
+      "description": "Malaysian news · Official live page",
+      "url": "https://www.astroawani.com/live-tv",
+      "source": "https://www.astroawani.com/"
+    },
+    {
+      "id": "spotify-web",
+      "name": "Spotify",
+      "symbol": "Spotify",
+      "type": "web",
+      "status": "official-link-unverified-playback",
+      "description": "Official website · Connect depends on device support",
+      "url": "https://open.spotify.com/",
+      "source": "https://support.spotify.com/article/spotify-on-tv/"
+    }
+  ],
+  "region_context": "Malaysia; service availability and TV browser playback are not verified",
+  "language": "en"
+}
