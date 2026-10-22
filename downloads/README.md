@@ -1,14 +1,14 @@
-# Samy TV — الإصدار الثالث
+# Samy TV — English edition
 
-[تحميل المشروع ZIP](./Samy_Vizio_Modern_Home.zip?raw=true) · [معاينة الواجهة](./preview.png)
+[Download the complete ZIP](./Samy_Vizio_Modern_Home.zip?raw=true) · [Preview the English interface](./preview.png)
 
-واجهة عربية مستوحاة من تنظيم Google TV، مع صفوف تطبيقات أفقية، ومكتبة وبحث، وزر WatchFree القديم مع فحص التطبيق الحالي، ورابط Spotify الرسمي وRTM Klik وAstro AWANI. المعاينة من متصفح محلي، وليست صورة TV.
+English TV page and Mac dashboard, left-to-right navigation, app rows, search, favorites, status/errors, and accessibility labels. The package includes English setup, compatibility, validation, and real-device guides.
 
-55 اختبار Python للتطبيق + 4 اختبارات مستقلة للتحديث، واختبارا متصفح ناجحان. WatchFree+ في ماليزيا وSpotify Connect والبث على TV غير متحقق منها. Spotify والمواقع الماليزية روابط ويب وليست تثبيت APK. لا يوجد Google Play أو استبدال Firmware في هذه الحزمة.
+55 offline app tests, 4 updater tests, and both browser suites passed. No cloud test establishes real-TV playback. WatchFree+ in Malaysia and Spotify playback/Connect remain unverified. Website links are not native app installations; no Google Play or firmware replacement is provided.
 
-## تحديث مجلدك الحالي
+## Update an existing installation
 
-أوقف الخادم بـControl+C. من مجلد المشروع الذي يحتوي main.py وsite:
+Stop your server with Control+C. From the project folder containing main.py and site/:
 
 ```bash
 curl -fL "https://github.com/msamyjr/samy-fluent-console-analyzer/raw/refs/heads/download/samy-vizio-modern-home/downloads/update.py" -o .samy_update.py &&
@@ -16,9 +16,6 @@ python3 .samy_update.py &&
 python3 main.py launch
 ```
 
-المحدّث يتحقق من SHA-256، ويحفظ نسخة من ملفات التطبيق القديمة في backups/، ولا يقرأ ولا يغيّر ملف AUTH الخاص بك. لا حاجة لإعادة setup.
+The updater checks SHA-256 and backs up application files. It does not read or change your private TV config; no new setup or AUTH entry is needed. Old Arabic documentation is preserved in existing installations; README.md is now the English guide.
 
-لفحص WatchFree منفصلًا: `python3 main.py watchfree` أو القراءة فقط `python3 main.py watchfree --check`. تطابق المعرّف لا يثبت تشغيل الفيديو أو إتاحة الخدمة في البلد.
-
-SHA-256 للحزمة:
-`eee7c791e82ca7eb9fb46bccc9d9a9b338c2e26cb953b1600033d3dcc42a1109`
+Archive SHA-256: `6c044d12338b9157b325176375bf07efae06cf3da645c353302e63134b3b833e`

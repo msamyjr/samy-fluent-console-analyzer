@@ -9,8 +9,8 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 ARCHIVE_URL = 'https://github.com/msamyjr/samy-fluent-console-analyzer/raw/refs/heads/download/samy-vizio-modern-home/downloads/Samy_Vizio_Modern_Home.zip'
-EXPECTED_SHA256 = 'eee7c791e82ca7eb9fb46bccc9d9a9b338c2e26cb953b1600033d3dcc42a1109'
-ROOT_FILES = {'main.py', '.gitignore', 'CODEX_PROMPT.md', 'README_AR.md', 'COMPATIBILITY_AR.md', 'REAL_DEVICE_TESTS_AR.md', 'TEST_RESULTS_AR.md'}
+EXPECTED_SHA256 = '6c044d12338b9157b325176375bf07efae06cf3da645c353302e63134b3b833e'
+ROOT_FILES = {'README.md', 'COMPATIBILITY.md', 'REAL_DEVICE_TESTS.md', 'TEST_RESULTS.md', 'main.py', '.gitignore', 'CODEX_PROMPT.md', 'README_AR.md', 'COMPATIBILITY_AR.md', 'REAL_DEVICE_TESTS_AR.md', 'TEST_RESULTS_AR.md'}
 
 
 def apply_update(archive, root):
