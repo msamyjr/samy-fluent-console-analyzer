@@ -220,6 +220,34 @@ def launch_app(cfg, name):
     return tv_api(cfg, 'PUT', '/app/launch', {'VALUE': APPS[name]})
 
 
+def current_app_identity(data):
+    """Normalize known /app/current shapes; never expose the whole response."""
+    candidates = [data, data.get('VALUE')]
+    if isinstance(data.get('ITEMS'), list):
+        for item in data['ITEMS']:
+            if isinstance(item, dict):
+                candidates.extend((item, item.get('VALUE')))
+    for value in candidates:
+        if not isinstance(value, dict):
+            continue
+        app_id, namespace = value.get('APP_ID'), value.get('NAME_SPACE')
+        if type(app_id) not in (str, int) or type(namespace) not in (str, int):
+            continue
+        if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', str(app_id)) or not str(namespace).isdigit():
+            continue
+        return {'APP_ID': str(app_id), 'NAME_SPACE': int(namespace)}
+    return None
+
+
+def watchfree_status(cfg):
+    current = current_app_identity(read_state(cfg, 'current_app'))
+    expected = {'APP_ID': APPS['watchfree']['APP_ID'], 'NAME_SPACE': APPS['watchfree']['NAME_SPACE']}
+    return {'current_app': current, 'expected_legacy_id': expected,
+            'matches_legacy_id': None if current is None else current == expected,
+            'screen_verified': False, 'playback_verified': False,
+            'note': 'Legacy community WatchFree ID only. Matching does not establish WatchFree+ availability or channel playback; inspect TV. No region bypass is implemented.'}
+
+
 def local_ip_for(host):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.connect((check_ip(host), TV_PORT))  # Route selection only, no UDP packet sent.
@@ -398,7 +426,8 @@ def snapshot(cfg):
 
 STATIC = {'/tv/': ('index.html', 'text/html'), '/tv/index.html': ('index.html', 'text/html'),
           '/tv/styles.css': ('styles.css', 'text/css'), '/tv/app.js': ('app.js', 'text/javascript'),
-          '/tv/catalog.json': ('catalog.json', 'application/json')}
+          '/tv/catalog.json': ('catalog.json', 'application/json'),
+          '/tv/landscape.svg': ('landscape.svg', 'image/svg+xml')}
 
 
 class Server(ThreadingHTTPServer):
@@ -511,6 +540,8 @@ class ControlHandler(BaseHandler):
             with TV_LOCK:
                 if path == '/api/status':
                     data = safe_identity(device_info(read_state(self.cfg, 'device')))
+                elif path == '/api/watchfree/status':
+                    data = watchfree_status(self.cfg)
                 elif path == '/api/inputs':
                     data = input_options(self.cfg)
                 elif path.startswith('/api/settings/'):
@@ -616,6 +647,8 @@ def main():
     trust.add_argument('--certificate-sha256')
     for name in ('diagnose', 'snapshot', 'preview', 'launch', 'catalog'):
         sub.add_parser(name)
+    p = sub.add_parser('watchfree', help='Launch the legacy WatchFree app and inspect current app; verify TV screen')
+    p.add_argument('--check', action='store_true', help='Read current app only; do not launch')
     p = sub.add_parser('key'); p.add_argument('name', choices=sorted(KEYS))
     p = sub.add_parser('app'); p.add_argument('name', choices=sorted(APPS))
     p = sub.add_parser('read'); p.add_argument('section', choices=sorted(READ_PATHS))
@@ -637,6 +670,12 @@ def main():
             return diagnose(cfg)
         if args.command == 'snapshot':
             return snapshot(cfg)
+        if args.command == 'watchfree':
+            if not args.check:
+                launch_app(cfg, 'watchfree')
+                print('Legacy WatchFree launch API accepted; not proof of WatchFree+ playback.')
+            print(json.dumps(watchfree_status(cfg), ensure_ascii=False, indent=2))
+            return
         if args.command == 'key':
             send_key(cfg, args.name)
             return print('Key accepted; verify on TV.')
