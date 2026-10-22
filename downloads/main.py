@@ -30,7 +30,8 @@ MAX_RESPONSE = 2 * 1024 * 1024
 KEYS = {
     'volume_up': (5, 1), 'volume_down': (5, 0), 'mute': (5, 4),
     'up': (3, 8), 'down': (3, 0), 'left': (3, 1), 'right': (3, 7),
-    'ok': (3, 2), 'back': (4, 0), 'home': (4, 3), 'input': (7, 1),
+    'ok': (3, 2), 'back': (4, 0), 'home': (4, 15), 'smartcast': (4, 3),
+    'menu': (4, 8), 'input': (7, 1),
 }
 APPS = {
     'netflix': {'NAME_SPACE': 3, 'APP_ID': '1', 'MESSAGE': ''},
@@ -221,19 +222,24 @@ def launch_app(cfg, name):
 
 
 def current_app_identity(data):
-    """Normalize known /app/current shapes; never expose the whole response."""
-    candidates = [data, data.get('VALUE')]
-    if isinstance(data.get('ITEMS'), list):
-        for item in data['ITEMS']:
-            if isinstance(item, dict):
-                candidates.extend((item, item.get('VALUE')))
+    """Read ITEM and ITEMS formats documented by community SmartCast clients."""
+    if not isinstance(data, dict):
+        return None
+    def fields(value):
+        return {k.upper(): v for k, v in value.items() if isinstance(k, str)} if isinstance(value, dict) else {}
+    root = fields(data)
+    candidates = [root, fields(root.get('VALUE'))]
+    single = fields(root.get('ITEM'))
+    candidates.extend((single, fields(single.get('VALUE'))))
+    if isinstance(root.get('ITEMS'), list):
+        for item in root['ITEMS']:
+            normalized = fields(item)
+            candidates.extend((normalized, fields(normalized.get('VALUE'))))
     for value in candidates:
-        if not isinstance(value, dict):
-            continue
         app_id, namespace = value.get('APP_ID'), value.get('NAME_SPACE')
         if type(app_id) not in (str, int) or type(namespace) not in (str, int):
             continue
-        if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', str(app_id)) or not str(namespace).isdigit():
+        if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', str(app_id)) or not re.fullmatch(r'[0-9]{1,4}', str(namespace)):
             continue
         return {'APP_ID': str(app_id), 'NAME_SPACE': int(namespace)}
     return None
@@ -310,16 +316,20 @@ def input_options(cfg):
     result = []
     for item in items_of(read_state(cfg, 'inputs')):
         cname = item.get('CNAME')
-        if not isinstance(cname, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,50}', cname) or item.get('ENABLED') is not True:
+        if not isinstance(cname, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,50}', cname):
+            continue
+        if cname == 'current_input':
             continue
         value = item.get('VALUE')
         label = value.get('NAME') if isinstance(value, dict) else item.get('NAME')
-        result.append({'id': cname, 'name': str(label or cname)[:80]})
+        result.append({'id': cname, 'name': str(label or cname)[:80],
+                       'enabled': item.get('ENABLED') if type(item.get('ENABLED')) is bool else None,
+                       'writable': item.get('ENABLED') is True})
     return result
 
 
 def set_input(cfg, target):
-    if target not in [i['id'] for i in input_options(cfg)]:
+    if target not in [i['id'] for i in input_options(cfg) if i['writable']]:
         raise ValueError('Input not advertised as enabled by TV')
     items = items_of(read_state(cfg, 'current_input'))
     if not items or type(items[0].get('HASHVAL')) is not int:
@@ -344,6 +354,47 @@ def setting_spec(item):
     return None
 
 
+def setting_readonly_reason(item):
+    if setting_spec(item):
+        return 'Writable using advertised metadata; verify changes on the TV.'
+    reasons = []
+    if item.get('ENABLED') is not True:
+        reasons.append('ENABLED is not explicitly true')
+    if item.get('READONLY'):
+        reasons.append('TV marked the setting read-only')
+    if type(item.get('HASHVAL')) is not int:
+        reasons.append('missing or unsupported HASHVAL')
+    if not reasons:
+        reasons.append('supported range or choices missing from dynamic response')
+    return 'Read-only: ' + '; '.join(reasons)
+
+
+def support_report(cfg):
+    """Bounded metadata report: reads only, no raw identifiers or API DETAIL."""
+    output = {'read_only': True, 'sections': {},
+              'note': 'Does not see the TV screen. Black-screen cause and region availability are not established.'}
+    for section in ('current_app', 'inputs', 'picture', 'audio'):
+        try:
+            data = read_state(cfg, section)
+            if section == 'current_app':
+                value = {'identity': current_app_identity(data), 'root_fields': sorted(data)}
+                for key in ('ITEM', 'item'):
+                    if isinstance(data.get(key), dict):
+                        value['singular_item_fields'] = sorted(data[key])
+                output['sections'][section] = value
+                continue
+            entries = []
+            for item in items_of(data):
+                entries.append({key: item[key] for key in ('CNAME', 'TYPE', 'ENABLED', 'READONLY',
+                    'MINIMUM', 'MAXIMUM', 'INCREMENT', 'ELEMENTS') if key in item})
+                entries[-1]['hashval_type'] = type(item.get('HASHVAL')).__name__
+                entries[-1]['field_names'] = sorted(item)
+            output['sections'][section] = {'items': entries}
+        except (RuntimeError, ValueError, TypeError):
+            output['sections'][section] = {'available': False}
+    return redact_for_config(cfg, output)
+
+
 def settings_options(cfg, group):
     if group not in SETTING_NAMES:
         raise ValueError('Only picture and audio settings are permitted')
@@ -352,7 +403,7 @@ def settings_options(cfg, group):
         if item.get('CNAME') in SETTING_NAMES[group]:
             result.append({'id': item['CNAME'], 'name': str(item.get('NAME') or item['CNAME']),
                            'value': item.get('VALUE'), 'spec': setting_spec(item),
-                           'note': 'Unknown or disabled metadata means read-only'})
+                           'note': setting_readonly_reason(item)})
     return result
 
 
@@ -645,7 +696,7 @@ def main():
     trust = p.add_mutually_exclusive_group()
     trust.add_argument('--trust-on-first-use', action='store_true')
     trust.add_argument('--certificate-sha256')
-    for name in ('diagnose', 'snapshot', 'preview', 'launch', 'catalog'):
+    for name in ('diagnose', 'snapshot', 'preview', 'launch', 'catalog', 'support'):
         sub.add_parser(name)
     p = sub.add_parser('watchfree', help='Launch the legacy WatchFree app and inspect current app; verify TV screen')
     p.add_argument('--check', action='store_true', help='Read current app only; do not launch')
@@ -670,6 +721,9 @@ def main():
             return diagnose(cfg)
         if args.command == 'snapshot':
             return snapshot(cfg)
+        if args.command == 'support':
+            print(json.dumps(support_report(cfg), ensure_ascii=False, indent=2))
+            return
         if args.command == 'watchfree':
             if not args.check:
                 launch_app(cfg, 'watchfree')

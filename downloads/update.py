@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path, PurePosixPath
 
 ARCHIVE_URL = 'https://github.com/msamyjr/samy-fluent-console-analyzer/raw/refs/heads/download/samy-vizio-modern-home/downloads/Samy_Vizio_Modern_Home.zip'
-EXPECTED_SHA256 = '6c044d12338b9157b325176375bf07efae06cf3da645c353302e63134b3b833e'
+EXPECTED_SHA256 = 'df01e601e31bf8e8ada60823d07fda68fc69704c93d828671483e3a82a6cbefb'
 ROOT_FILES = {'README.md', 'COMPATIBILITY.md', 'REAL_DEVICE_TESTS.md', 'TEST_RESULTS.md', 'main.py', '.gitignore', 'CODEX_PROMPT.md', 'README_AR.md', 'COMPATIBILITY_AR.md', 'REAL_DEVICE_TESTS_AR.md', 'TEST_RESULTS_AR.md'}
 
 
