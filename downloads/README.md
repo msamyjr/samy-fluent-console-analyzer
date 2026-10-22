@@ -22,3 +22,7 @@ The updater preserves pairing and backs up app files. The support command only r
 English interface and guides included. WatchFree+ availability in Malaysia, Spotify/website playback, and real TV recovery remain unverified. No DNS/network changes, DRM bypass, firmware replacement, or Google Play installation.
 
 SHA-256: `df01e601e31bf8e8ada60823d07fda68fc69704c93d828671483e3a82a6cbefb`
+
+## Firmware research
+
+[Cross-model firmware investigation](./FIRMWARE_RESEARCH.md) — no compatible firmware candidate verified; official-source access blocked in the cloud.
